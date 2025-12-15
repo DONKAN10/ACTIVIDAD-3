@@ -1,0 +1,86 @@
+# .github/workflows/ci-cd.yml
+name: CI/CD Pipeline con Estrategia de Despliegue
+
+# 🔔 Disparador: Se ejecuta en cada push a la rama principal (main)
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # 1. 🧪 Integración Continua (CI) - Ejecutar Pruebas
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Dependencias
+        run: npm install
+
+      - name: Ejecutar Pruebas Automáticas
+        # Esto es redundante con el Dockerfile, pero bueno para visibilidad
+        run: npm test
+
+  # 2. 🏗️ Integración Continua (CI) - Construir Imagen Docker
+  build-docker:
+    needs: test # 🛑 Depende de que las pruebas sean exitosas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+      
+      # 🔒 Login en Docker Hub usando Secretos
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }} 
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          
+      - name: Construir, Taggear y Subir (Push) la Imagen
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Usamos el SHA del commit como tag para una versión inmutable y segura.
+          tags: ${{ secrets.DOCKER_USERNAME }}/mi-app-ci-cd:${{ github.sha }} 
+          # También podemos añadir el tag 'latest'
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/mi-app-ci-cd:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/mi-app-ci-cd:latest
+
+  # 3. 🚀 Despliegue Continuo (CD) - Estrategia Simulada (Blue/Green o Canary)
+  deploy-strategy-simulated:
+    needs: build-docker # 🛑 Depende de la imagen Docker construida
+    runs-on: ubuntu-latest
+    # El 'environment' habilita las reglas de protección de entornos en GitHub
+    environment: 
+      name: produccion-canary 
+    steps:
+      - name: Despliegue Parcial (Canary/Blue) con Secretos
+        run: |
+          echo "Simulando el comando de despliegue a la infraestructura Blue (ej. Railway/AWS)"
+          echo "Versión a desplegar: ${{ github.sha }}"
+          echo "Secreto de Despliegue (ej. Token de API): ${{ secrets.API_KEY }}"
+          # Nota: Los 'echo' para secretos solo se usan para demostrar, 
+          # en un pipeline real, el comando de despliegue lo usaría directamente.
+        env:
+          # Inyectamos el Secreto como variable de entorno para que la app (index.js) lo use
+          WELCOME_MESSAGE: ${{ secrets.WELCOME_MESSAGE }} 
+
+      - name: Simulación de Monitorización y Prueba de Humo
+        run: |
+          echo "Esperando 10 segundos para monitorizar el tráfico del servidor Blue..."
+          sleep 10 
+          echo "Monitorización OK. Versión estable."
+
+      - name: Promoción a Producción Completa (Green)
+        run: |
+          echo "Promoviendo la versión ${{ github.sha }} como la versión principal (Green)."
+          # Aquí iría el comando para cambiar el enrutamiento de Blue a Green
+          # o escalar la versión Canary a 100% de tráfico.

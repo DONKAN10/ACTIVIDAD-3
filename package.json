@@ -1,0 +1,20 @@
+{
+  "name": "actividad-3",
+  "version": "1.0.0",
+  "description": "Proyecto CI/CD Básico",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jest" 
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
