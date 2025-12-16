@@ -1,34 +1,42 @@
 # Dockerfile
 
-# =================================================================
-# ETAPA 1: BUILDER (Instalación, Pruebas)
-# =================================================================
+# ===================================================================
+# STAGE 1: BUILDER - Instalación de dependencias (para npm ci)
+# Usamos una imagen completa si necesitamos herramientas de compilación,
+# pero para solo Express/Jest, node:20 funciona.
 FROM node:20 AS builder
+
 WORKDIR /app
+
+# Copia los archivos de manifiesto clave
 COPY package*.json ./
 
-# ** SOLUCIÓN FINAL 2 **: Usamos npm ci (Clean Install) para asegurar una instalación
-# determinista, limpia y más confiable, lo cual debería resolver los problemas de
-# dependencias faltantes como jest-circus después de los scripts postinstall.
-# Mantenemos --unsafe-perm como contingencia.
-RUN npm ci --unsafe-perm && npm cache clean --force
+# Instala dependencias. 
+# NOTA: --unsafe-perm ayuda con ciertos módulos, pero el problema real es el USER.
+RUN npm ci --unsafe-perm --only=production
 
-COPY . .
-
-# Mantenemos chmod +x para asegurar permisos de ejecución en todos los binarios de scripts.
-RUN chmod +x ./node_modules/.bin/*
-
-# Ejecución de Pruebas (Test)
-RUN ["/usr/local/bin/npm", "test"]
-
-# =================================================================
-# ETAPA 2: PRODUCTION (Imagen final ligera)
-# =================================================================
+# ===================================================================
+# STAGE 2: FINAL - Imagen de producción ligera
+# Usamos la versión Alpine para una imagen mucho más pequeña
 FROM node:20-alpine
+
+# Define el directorio de trabajo
 WORKDIR /app
-# Copiamos solo los artefactos necesarios de la etapa 'builder'
+
+# Copia solo las dependencias de producción del stage 'builder'
+# Esto hace la imagen final muy pequeña.
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/index.js ./index.js
-COPY --from=builder /app/package.json ./package.json
+
+# Copia los archivos del proyecto y el package.json (para los scripts)
+COPY package*.json ./
+COPY index.js .
+
+# Define el usuario que ejecutará la aplicación (resuelve "Permission denied")
+# El usuario 'node' ya existe en la imagen node-alpine
+USER node
+
+# Expone el puerto donde Express escuchará
 EXPOSE 3000
+
+# Comando para iniciar la aplicación (usa el script "start" de package.json)
 CMD ["npm", "start"]

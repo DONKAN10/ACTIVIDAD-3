@@ -1,17 +1,17 @@
-# Excluir la carpeta de dependencias local (será generada por npm ci)
+# .dockerignore
+
+# Carpetas y archivos de Node.js
 node_modules
-
-# Excluir la propia carpeta de Docker, si es necesario
-.docker
-
-# Excluir los archivos de control de versiones
-.git
-.gitignore
-
-# Excluir archivos de registro de npm
 npm-debug.log
 .npmrc
 
-# Excluir archivos de entorno y logs
+# Carpetas y archivos de Version Control
+.git
+.gitignore
+
+# Archivos de entorno y logs
 .env
 *.log
+
+# Carpetas de CI/CD específicas (si existen)
+.github
