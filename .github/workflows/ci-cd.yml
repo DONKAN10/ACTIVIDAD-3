@@ -24,7 +24,6 @@ jobs:
         run: npm install
 
       - name: Ejecutar Pruebas Automáticas
-        # Esto es redundante con el Dockerfile, pero bueno para visibilidad
         run: npm test
 
   # 2. 🏗️ Integración Continua (CI) - Construir Imagen Docker
@@ -47,9 +46,7 @@ jobs:
         with:
           context: .
           push: true
-          # Usamos el SHA del commit como tag para una versión inmutable y segura.
-          tags: ${{ secrets.DOCKER_USERNAME }}/mi-app-ci-cd:${{ github.sha }} 
-          # También podemos añadir el tag 'latest'
+          # ✅ CORRECCIÓN: Usamos el formato multilinea para definir ambos tags (SHA y latest)
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/mi-app-ci-cd:${{ github.sha }}
             ${{ secrets.DOCKER_USERNAME }}/mi-app-ci-cd:latest
@@ -58,7 +55,6 @@ jobs:
   deploy-strategy-simulated:
     needs: build-docker # 🛑 Depende de la imagen Docker construida
     runs-on: ubuntu-latest
-    # El 'environment' habilita las reglas de protección de entornos en GitHub
     environment: 
       name: produccion-canary 
     steps:
@@ -66,9 +62,6 @@ jobs:
         run: |
           echo "Simulando el comando de despliegue a la infraestructura Blue (ej. Railway/AWS)"
           echo "Versión a desplegar: ${{ github.sha }}"
-          echo "Secreto de Despliegue (ej. Token de API): ${{ secrets.API_KEY }}"
-          # Nota: Los 'echo' para secretos solo se usan para demostrar, 
-          # en un pipeline real, el comando de despliegue lo usaría directamente.
         env:
           # Inyectamos el Secreto como variable de entorno para que la app (index.js) lo use
           WELCOME_MESSAGE: ${{ secrets.WELCOME_MESSAGE }} 
@@ -82,5 +75,4 @@ jobs:
       - name: Promoción a Producción Completa (Green)
         run: |
           echo "Promoviendo la versión ${{ github.sha }} como la versión principal (Green)."
-          # Aquí iría el comando para cambiar el enrutamiento de Blue a Green
-          # o escalar la versión Canary a 100% de tráfico.
+          echo "Clave de API de Despliegue: ${{ secrets.API_KEY }}"
