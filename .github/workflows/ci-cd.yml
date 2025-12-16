@@ -1,78 +1,63 @@
-# .github/workflows/ci-cd.yml
-name: CI/CD Pipeline con Estrategia de Despliegue
+# .github/workflows/main.yml
+name: CI/CD Pipeline Node.js App
 
-# 🔔 Disparador: Se ejecuta en cada push a la rama principal (main)
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  # 1. 🧪 Integración Continua (CI) - Ejecutar Pruebas
+  # ==========================================================
+  # 1. CI: Pruebas Unitarias (Se ejecuta en un runner de GitHub)
+  # ==========================================================
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Código
+      - name: ⬇️ Checkout del Código
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js (v20)
+      - name: ⚙️ Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm' # Habilita el caché de dependencias
 
-      - name: Instalar Dependencias
-        run: npm install
+      - name: 📦 Instalar dependencias
+        # npm ci es mejor en CI/CD por su velocidad y estricta coherencia
+        run: npm ci
 
-      - name: Ejecutar Pruebas Automáticas
-        run: npm test
+      - name: 🧪 Ejecutar pruebas unitarias
+        # Este paso ahora usa el script 'test' actualizado ("npx jest")
+        run: npm run test
 
-  # 2. 🏗️ Integración Continua (CI) - Construir Imagen Docker
-  build-docker:
-    needs: test # 🛑 Depende de que las pruebas sean exitosas
+  # ==========================================================
+  # 2. CD: Build y Push de la Imagen Docker (Depende de que las pruebas pasen)
+  # ==========================================================
+  build-and-push:
+    needs: test # Solo se ejecuta si el job 'test' pasa
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Código
+      - name: ⬇️ Checkout del Código
         uses: actions/checkout@v4
-      
-      # 🔒 Login en Docker Hub usando Secretos
-      - name: Docker Login
+
+      - name: 🔑 Iniciar sesión en Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }} 
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          
-      - name: Construir, Taggear y Subir (Push) la Imagen
+          username: ${{ secrets.DOCKER_USERNAME }} # Asegúrate de tener este secreto
+          password: ${{ secrets.DOCKER_PASSWORD }} # Asegúrate de tener este secreto
+
+      - name: 🛠️ Configurar Buildx (Para builds modernos)
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Compilar y Subir la Imagen Docker
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          # ✅ CORRECCIÓN: Usamos el formato multilinea para definir ambos tags (SHA y latest)
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/mi-app-ci-cd:${{ github.sha }}
-            ${{ secrets.DOCKER_USERNAME }}/mi-app-ci-cd:latest
-
-  # 3. 🚀 Despliegue Continuo (CD) - Estrategia Simulada (Blue/Green o Canary)
-  deploy-strategy-simulated:
-    needs: build-docker # 🛑 Depende de la imagen Docker construida
-    runs-on: ubuntu-latest
-    environment: 
-      name: produccion-canary 
-    steps:
-      - name: Despliegue Parcial (Canary/Blue) con Secretos
-        run: |
-          echo "Simulando el comando de despliegue a la infraestructura Blue (ej. Railway/AWS)"
-          echo "Versión a desplegar: ${{ github.sha }}"
-        env:
-          # Inyectamos el Secreto como variable de entorno para que la app (index.js) lo use
-          WELCOME_MESSAGE: ${{ secrets.WELCOME_MESSAGE }} 
-
-      - name: Simulación de Monitorización y Prueba de Humo
-        run: |
-          echo "Esperando 10 segundos para monitorizar el tráfico del servidor Blue..."
-          sleep 10 
-          echo "Monitorización OK. Versión estable."
-
-      - name: Promoción a Producción Completa (Green)
-        run: |
-          echo "Promoviendo la versión ${{ github.sha }} como la versión principal (Green)."
-          echo "Clave de API de Despliegue: ${{ secrets.API_KEY }}"
+            tu-usuario-docker/mi-app-ci-cd:latest
+            tu-usuario-docker/mi-app-ci-cd:${{ github.sha }}

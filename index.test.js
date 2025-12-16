@@ -15,15 +15,3 @@ describe('Pruebas de la función SUMA', () => {
     expect(sum(10, 0)).toBe(10);
   });
 });
-
-// Opcional: Prueba simple para verificar que Express se levante
-// const request = require('supertest');
-// const { app } = require('./index');
-
-// describe('Pruebas del endpoint /', () => {
-//     test('Debe responder con el mensaje de bienvenida', async () => {
-//         const response = await request(app).get('/');
-//         expect(response.statusCode).toBe(200);
-//         expect(response.text).toBe('¡Hola desde Actividad 3 con Express!');
-//     });
-// });
