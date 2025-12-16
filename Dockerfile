@@ -7,13 +7,13 @@ FROM node:20 AS builder
 WORKDIR /app
 COPY package*.json ./
 
-# 💡 CORRECCIÓN 1: Instalación robusta. Limpiamos la caché si hay problemas
-RUN npm install && npm cache clean --force
+# ** SOLUCIÓN FINAL **: Usamos --unsafe-perm para asegurar que los scripts de post-instalación
+# (como napi-postinstall) se ejecuten sin problemas de permisos, lo que evita la corrupción de Jest.
+RUN npm install --unsafe-perm && npm cache clean --force
 
 COPY . .
 
-# 💡 CORRECCIÓN 2: Solución al "Permission denied" (Exit Code 127) en Jest y napi-postinstall.
-# Damos permisos de ejecución a TODOS los binarios dentro de node_modules/.bin.
+# Mantenemos chmod +x para asegurar permisos de ejecución en todos los binarios de scripts.
 RUN chmod +x ./node_modules/.bin/*
 
 # Ejecución de Pruebas (Test)
