@@ -9,7 +9,7 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 # 🛑 EJECUCIÓN DE PRUEBAS EN CI
-RUN npx jest  # <--- ¡CORRECCIÓN APLICADA AQUÍ!
+RUN ["/usr/local/bin/npm", "test"]
 #
 # El resto del archivo es el mismo
 #
