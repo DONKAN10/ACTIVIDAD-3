@@ -1,17 +1,20 @@
 # Dockerfile
 
 # =================================================================
-# ETAPA 1: BUILDER
+# ETAPA 1: BUILDER (Instalación, Pruebas)
 # =================================================================
 FROM node:20 AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+
+# 💡 CORRECCIÓN 1: Instalación robusta. Limpiamos la caché si hay problemas
+RUN npm install && npm cache clean --force
+
 COPY . .
 
-# Solución al error "jest: Permission denied" (Exit Code 127)
-# Forzamos permisos de ejecución en el binario de Jest.
-RUN chmod +x ./node_modules/.bin/jest
+# 💡 CORRECCIÓN 2: Solución al "Permission denied" (Exit Code 127) en Jest y napi-postinstall.
+# Damos permisos de ejecución a TODOS los binarios dentro de node_modules/.bin.
+RUN chmod +x ./node_modules/.bin/*
 
 # Ejecución de Pruebas (Test)
 RUN ["/usr/local/bin/npm", "test"]
