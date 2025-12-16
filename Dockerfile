@@ -7,9 +7,11 @@ FROM node:20 AS builder
 WORKDIR /app
 COPY package*.json ./
 
-# ** SOLUCIÓN FINAL **: Usamos --unsafe-perm para asegurar que los scripts de post-instalación
-# (como napi-postinstall) se ejecuten sin problemas de permisos, lo que evita la corrupción de Jest.
-RUN npm install --unsafe-perm && npm cache clean --force
+# ** SOLUCIÓN FINAL 2 **: Usamos npm ci (Clean Install) para asegurar una instalación
+# determinista, limpia y más confiable, lo cual debería resolver los problemas de
+# dependencias faltantes como jest-circus después de los scripts postinstall.
+# Mantenemos --unsafe-perm como contingencia.
+RUN npm ci --unsafe-perm && npm cache clean --force
 
 COPY . .
 
